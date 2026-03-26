@@ -291,49 +291,44 @@ def filter_by_tag(tag):
     results = [t for t in tasks if tag.lower() in t["description"].lower()]
     print(f"--- Showing results for {tag} ---")
     display_task_table(results)
-    
+
 # --- MAIN CONTROLLER ---
 def main():
     """The master loop that keeps the application alive and interactive."""
     check_deadlines()                               # Auto-run alert engine on login
     while True:
-        print(f"\n{Colors.BOLD}{Colors.BLUE}--- TASK MANAGER PRO V2.0 ---{Colors.ENDC}")
-        print("1. View Tasks")                      # Read
-        print("2. Add Task")                        # Create
-        print("3. Mark Task Done")                  # Update
-        print("4. Delete Task")                     # Delete
-        print("5. Search Tasks")                    # Filter
-        print("6. Sort Tasks")                      # Reorder
-        print("7. Export to CSV")                   # Export
-        print("8. Productivity Stats")              # Analytics
-        print("9. Archive Completed")               # Maintenance
-        print("10. Exit")                           # Termination
+        print(f"\n{Colors.BOLD}{Colors.BLUE}--- TASK MANAGER ULTIMATE ---{Colors.ENDC}")
+        print("1. View All         2. Add Task         3. Search/Tags")
+        print("4. Bulk Done        5. Bulk Delete      6. Sort Tasks")
+        print("7. Toggle Timer     8. Productivity     9. Export CSV") # Export is back
+        print("10. Archive & Exit") # Archive happens automatically then closes
         
         choice = input("\nSelect (1-10): ").strip()
         
         if choice == "1": display_task_table(load_tasks())
         elif choice == "2":
-            d = get_non_empty_input("Description: ")
+            d = get_non_empty_input("Description (use #tags): ")
             p = get_valid_priority()
-            dt = get_valid_date("Due Date (YYYY-MM-DD) or [Enter]: ")
+            dt = get_valid_date("Due (YYYY-MM-DD) or [Enter]: ")
             add_task(d, p, dt)
-        elif choice == "3":
-            try: mark_done(int(input("Task ID: ")))
-            except ValueError: print(f"{Colors.RED}✖ Enter a numeric ID.{Colors.ENDC}")
-        elif choice == "4":
-            try: delete_task(int(input("Task ID: ")))
-            except ValueError: print(f"{Colors.RED}✖ Enter a numeric ID.{Colors.ENDC}")
-        elif choice == "5": search_tasks(input("Keyword: "))
+        elif choice == "3": 
+            search_tasks(input("Keyword or #tag: "))
+        elif choice == "4": bulk_action("done")
+        elif choice == "5": bulk_action("delete")
         elif choice == "6":
             print("\nSort by: (1) Priority (2) Due Date (3) ID")
             s_map = {"1": "priority", "2": "due_date", "3": "id"}
             view_tasks_sorted(s_map.get(input("Choice: "), "id"))
-        elif choice == "7": export_to_csv()
+        elif choice == "7":
+            try: toggle_timer(int(input("Enter Task ID to Start/Stop: ")))
+            except ValueError: print(f"{Colors.RED}✖ Enter a numeric ID.{Colors.ENDC}")
         elif choice == "8": show_stats()
-        elif choice == "9": archive_tasks()
-        elif choice == "10": print(f"{Colors.CYAN}Goodbye!{Colors.ENDC}"); break
-        else: print(f"{Colors.RED}✖ Invalid choice (1-10).{Colors.ENDC}")
-
+        elif choice == "9": export_to_csv()
+        elif choice == "10":
+            archive_tasks() # Clean up before leaving
+            print(f"{Colors.CYAN}Tasks archived. Goodbye!{Colors.ENDC}")
+            break
+        
 if __name__ == "__main__":
     if login(): main()                              # Only start app if login returns True
     else: exit()                                    # Otherwise terminate
