@@ -170,6 +170,39 @@ def display_task_table(tasks_list):
     
     print(Colors.BOLD + Colors.HEADER + "="*95 + Colors.ENDC + "\n")
 
+def get_non_empty_input(prompt):
+    """Ensures the user doesn't provide a blank string."""
+    while True:
+        value = input(prompt).strip()
+        if value:
+            return value
+        print(f"{Colors.RED}✖ Error: This field cannot be empty.{Colors.ENDC}")
+
+def get_valid_date(prompt):
+    """Ensures the date is in YYYY-MM-DD format or allows empty for 'None'."""
+    while True:
+        value = input(prompt).strip()
+        if not value:
+            return "None"
+        try:
+            # Try to parse the string into a real date object
+            datetime.strptime(value, "%Y-%m-%d")
+            return value
+        except ValueError:
+            print(f"{Colors.RED}✖ Error: Use YYYY-MM-DD (e.g., 2026-12-31).{Colors.ENDC}")
+
+def get_valid_priority():
+    """Restricts priority to specific choices."""
+    options = {"1": "High", "2": "Medium", "3": "Low"}
+    while True:
+        print("Priority: (1) High (2) Medium (3) Low")
+        choice = input("Select (1-3) [Default 2]: ").strip()
+        if not choice:
+            return "Medium"
+        if choice in options:
+            return options[choice]
+        print(f"{Colors.RED}✖ Invalid choice. Please pick 1, 2, or 3.{Colors.ENDC}")
+        
 # --- USER INTERFACE ---
 def main():                                         # Define the primary app controller
     while True:                                     # Start an infinite loop to keep the app open
