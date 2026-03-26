@@ -6,6 +6,17 @@ from datetime import datetime                       # Import the library to capt
 # --- CONFIGURATION ---
 DATA_FILE = "tasks.json"                            # Define the filename where our tasks will be stored
 
+# --- TERMINAL COLORS ---
+class Colors:
+    HEADER = '\033[95m'    # Purple
+    BLUE = '\033[94m'      # Blue
+    GREEN = '\033[92m'     # Green (For 'Done')
+    YELLOW = '\033[93m'    # Yellow (For 'Medium')
+    RED = '\033[91m'       # Red (For 'High')
+    CYAN = '\033[96m'      # Cyan (For 'Low')
+    ENDC = '\033[0m'       # Reset color to default
+    BOLD = '\033[1m'       # Bold text
+
 # --- STORAGE ENGINE ---
 def load_tasks():                                   # Define function to pull data from the hard drive
     if not os.path.exists(DATA_FILE):               # Check if the JSON file exists in the current folder
@@ -133,14 +144,31 @@ def view_tasks_sorted(sort_by="id"):
     display_task_table(tasks)
 
 def display_task_table(tasks_list):
-    """Helper function to print the table so we don't repeat code."""
-    print("\n" + "="*85)
-    print(f"{'ID':<4} | {'Description':<20} | {'Priority':<10} | {'Due':<12} | {'Status':<10}")
-    print("-" * 85)
+    """Helper function to print a color-coded table."""
+    print("\n" + Colors.BOLD + Colors.HEADER + "="*95 + Colors.ENDC)
+    print(f"{Colors.BOLD}{'ID':<4} | {'Description':<20} | {'Priority':<10} | {'Due':<12} | {'Status':<10}{Colors.ENDC}")
+    print("-" * 95)
+
     for t in tasks_list:
-        status = "Done" if t["status"] else "Pending"
-        print(f"{t['id']:<4} | {t['description']:<20} | {t['priority']:<10} | {t['due_date']:<12} | {status:<10}")
-    print("="*85 + "\n")
+        # 1. Determine Priority Color
+        p_val = t.get("priority", "Medium")
+        if p_val == "High":
+            p_color = Colors.RED
+        elif p_val == "Medium":
+            p_color = Colors.YELLOW
+        else:
+            p_color = Colors.CYAN
+        
+        # 2. Determine Status Color (Green if Done, Red if Pending)
+        if t["status"]:
+            s_text = f"{Colors.GREEN}Done{Colors.ENDC}"
+        else:
+            s_text = f"{Colors.RED}Pending{Colors.ENDC}"
+
+        # 3. Print the row with colors
+        print(f"{t['id']:<4} | {t['description']:<20} | {p_color}{p_val:<10}{Colors.ENDC} | {t['due_date']:<12} | {s_text:<10}")
+    
+    print(Colors.BOLD + Colors.HEADER + "="*95 + Colors.ENDC + "\n")
 
 # --- USER INTERFACE ---
 def main():                                         # Define the primary app controller
