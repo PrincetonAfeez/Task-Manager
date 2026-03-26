@@ -1,5 +1,6 @@
 import json                                         # Import the library to handle JSON data files
 import os                                           # Import the library to check if files exist on your PC
+import csv                                        # Import the library to handle CSV files (for future export feature)          
 from datetime import datetime                       # Import the library to capture the current date and time
 
 # --- CONFIGURATION ---
@@ -25,26 +26,46 @@ def add_task(description, priority="Medium"):      # Added a default 'Medium' pr
     new_task = {
         "id": len(tasks) + 1,
         "description": description,
-        "priority": priority,                       # New Field!
+        "priority": priority,
+        "due_date": due_date,
         "status": False,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     tasks.append(new_task)
     save_tasks(tasks)
     print(f"✔ Added: [{priority}] {description}") # Print a success message to the user
+    print(f"✔ Task added! Due: {due_date}")
+
+def export_to_csv():
+    """Converts the JSON database into a CSV file for Excel/Sheets."""
+    tasks = load_tasks()
+    if not tasks:
+        print("Nothing to export!")
+        return
+    
+    filename = "task_export.csv"
+    # Get headers from the keys of the first task dictionary
+    headers = tasks[0].keys()
+    
+    with open(filename, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(tasks)
+    
+    print(f"✅ Data exported successfully to {filename}")
 
 def view_tasks():                                   # Define function to Read and display tasks
     tasks = load_tasks()                            # Get the latest list of tasks
     if not tasks:                                   # Check if the list is empty
         print("\n--- No tasks found. Your list is empty! ---") # Tell the user there's nothing to show
         return                                      # Stop the function early
-    print("\n" + "="*50)                             # Print a top border for the table
-    print(f"{'ID':<4} | {'Description':<20} | {'Status':<10}") # Print the table headers with alignment
-    print("-" * 50)                                 # Print a separator line
+    print("\n" + "="*85)                             # Print a top border for the table
+    print(f"{'ID':<4} | {'Description':<20} | {'Priority':<10} | {'Due':<12} | {'Status':<10}")
+    print("-" * 85)                                 # Print a separator line
     for task in tasks:                              # Loop through every task in the list
         status_text = "Done" if task["status"] else "Pending" # Convert the Boolean True/False to a word
-        print(f"{task['id']:<4} | {task['description']:<20} | {status_text:<10}") # Print the task row
-    print("="*50 + "\n")                            # Print a bottom border
+        print(f"{task['id']:<4} | {task['description']:<20}| {task['priority']:<10} | {task['due_date']:<12} | {status_text:<10}")
+    print("="*85 + "\n")                            # Print a bottom border
 
 def mark_done(task_id):                             # Define function to Update a task status
     tasks = load_tasks()                            # Load existing tasks
