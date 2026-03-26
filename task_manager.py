@@ -212,10 +212,10 @@ def main():                                         # Define the primary app con
         print("3. Mark Task Done")
         print("4. Delete Task")
         print("5. Search Tasks")  # New Option
-        print("6. Export to CSV")
-        print("7. Exit")
+        print("7. Sort & View Tasks") # New Option
+        print("8. Exit")
         
-        choice = input("\nChoose an option (1-7): ") # Ask the user for their choice
+        choice = input("\nChoose an option (1-8): ") # Ask the user for their choice
         
         if choice == "1":                           # If they chose 1...
             view_tasks()                            # Call the view function
@@ -241,8 +241,17 @@ def main():                                         # Define the primary app con
             search_tasks(query)
         elif choice == "6":
             export_to_csv()
-        elif choice == "7":                         # If they chose 7...
-            print("Goodbye!")                       # Print a farewell message
+        elif choice == "7":
+            print("\nSort by: (1) Priority  (2) Due Date  (3) ID")
+            s_choice = input("Choice: ")
+            if s_choice == "1":
+                view_tasks_sorted("priority")
+            elif s_choice == "2":
+                view_tasks_sorted("due_date")
+            else:
+                view_tasks_sorted("id")
+        elif choice == "8":
+            print("Goodbye!")
             break                                   # Break the loop to close the program
         else:                                       # If they typed anything else...
             print("Invalid choice, try again.")     # Prompt them to try again
