@@ -2,9 +2,11 @@ import json                                         # Library to read/write JSON
 import os                                           # Library to check if files exist on the system
 import csv                                          # Library to export data to spreadsheet format
 from datetime import datetime                       # Library to handle dates and timestamps
+import hashlib                                      # Library to securely hash passwords
 
 # --- CONFIGURATION ---
 DATA_FILE = "tasks.json"                            # The filename for our local JSON database
+USER_FILE = "users.json"                            # New file for credentials
 
 # --- TERMINAL COLORS (ANSI ESCAPE CODES) ---
 class Colors:
@@ -26,6 +28,48 @@ def load_tasks():                                   # Loads data from JSON to Py
             return json.load(file)                  # Convert JSON string to Python list
         except json.JSONDecodeError:                # If file is corrupted...
             return []                               # Return empty list
+
+def hash_password(password):
+    """Converts a plain-text password into a secure SHA-256 hash."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def setup_account():
+    """Creates the initial admin account if it doesn't exist."""
+    if not os.path.exists(USER_FILE):
+        print(f"{Colors.CYAN}--- Initial Security Setup ---{Colors.ENDC}")
+        username = get_non_empty_input("Create Admin Username: ")
+        password = get_non_empty_input("Create Admin Password: ")
+        
+        user_data = {
+            "username": username,
+            "password": hash_password(password) # Store the HASH, not the text!
+        }
+        with open(USER_FILE, "w") as f:
+            json.dump(user_data, f)
+        print(f"{Colors.GREEN}Account created successfully!{Colors.ENDC}\n")
+
+def login():
+    """Requires username and password to access the app."""
+    setup_account() # Ensure an account exists
+    
+    with open(USER_FILE, "r") as f:
+        stored_user = json.load(f)
+
+    attempts = 3
+    while attempts > 0:
+        print(f"{Colors.BOLD}Login Required ({attempts} attempts left){Colors.ENDC}")
+        user_input = input("Username: ")
+        pass_input = input("Password: ")
+
+        if user_input == stored_user["username"] and hash_password(pass_input) == stored_user["password"]:
+            print(f"{Colors.GREEN}Access Granted. Welcome back, {user_input}!{Colors.ENDC}")
+            return True
+        else:
+            attempts -= 1
+            print(f"{Colors.RED}Invalid credentials.{Colors.ENDC}")
+    
+    print(f"{Colors.RED}Too many failed attempts. Locking system.{Colors.ENDC}")
+    return False
 
 def save_tasks(tasks):                              # Saves Python List to JSON file
     with open(DATA_FILE, "w") as file:              # Open file in write mode (overwrites old data)
@@ -193,5 +237,10 @@ def main():                                         # Main Program Loop
             break                                   # Kill loop
         else: print(f"{Colors.RED}✖ Invalid choice.{Colors.ENDC}")
 
-if __name__ == "__main__":                          # Boilerplate to run script
-    main()                                          # Start the engine
+if __name__ == "__main__":
+    # The app now starts with a login check
+    if login():
+        main()
+    else:
+        # If login fails 3 times, the script just ends
+        exit()
