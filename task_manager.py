@@ -34,41 +34,79 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def setup_account():
-    """Creates the initial admin account if it doesn't exist."""
+    """Creates the initial admin account with a recovery question."""
     if not os.path.exists(USER_FILE):
         print(f"{Colors.CYAN}--- Initial Security Setup ---{Colors.ENDC}")
         username = get_non_empty_input("Create Admin Username: ")
         password = get_non_empty_input("Create Admin Password: ")
+        print(f"\n{Colors.YELLOW}Set a Recovery Question (in case you forget your password){Colors.ENDC}")
+        question = get_non_empty_input("Recovery Question (e.g., Mother's maiden name): ")
+        answer = get_non_empty_input("Recovery Answer: ")
         
         user_data = {
             "username": username,
-            "password": hash_password(password) # Store the HASH, not the text!
+            "password": hash_password(password),
+            "recovery_question": question,
+            "recovery_answer": hash_password(answer.lower()) # Hash the answer too!
         }
         with open(USER_FILE, "w") as f:
             json.dump(user_data, f)
         print(f"{Colors.GREEN}Account created successfully!{Colors.ENDC}\n")
 
+def reset_password():
+    """Flow to reset password using the recovery question."""
+    if not os.path.exists(USER_FILE):
+        return
+    
+    with open(USER_FILE, "r") as f:
+        data = json.load(f)
+
+    print(f"\n{Colors.BOLD}--- Password Recovery ---{Colors.ENDC}")
+    print(f"Question: {data['recovery_question']}")
+    ans_input = input("Your Answer: ").strip().lower()
+
+    if hash_password(ans_input) == data['recovery_answer']:
+        new_pass = get_non_empty_input("Enter New Password: ")
+        data['password'] = hash_password(new_pass)
+        with open(USER_FILE, "w") as f:
+            json.dump(data, f)
+        print(f"{Colors.GREEN}Password updated! Please login again.{Colors.ENDC}")
+        return True
+    else:
+        print(f"{Colors.RED}Incorrect answer. Recovery failed.{Colors.ENDC}")
+        return False
+
 def login():
-    """Requires username and password to access the app."""
-    setup_account() # Ensure an account exists
+    """Login gateway with a 'Forgot Password' option."""
+    setup_account()
     
     with open(USER_FILE, "r") as f:
         stored_user = json.load(f)
 
     attempts = 3
     while attempts > 0:
-        print(f"{Colors.BOLD}Login Required ({attempts} attempts left){Colors.ENDC}")
-        user_input = input("Username: ")
-        pass_input = input("Password: ")
+        print(f"\n{Colors.BOLD}Login Required ({attempts} attempts left){Colors.ENDC}")
+        print("Type 'forgot' if you lost your password.")
+        user_input = input("Username: ").strip()
+        
+        if user_input.lower() == 'forgot':
+            if reset_password():
+                attempts = 3 # Reset attempts if they successfully changed password
+                continue
+            else:
+                attempts -= 1
+                continue
+
+        pass_input = input("Password: ").strip()
 
         if user_input == stored_user["username"] and hash_password(pass_input) == stored_user["password"]:
-            print(f"{Colors.GREEN}Access Granted. Welcome back, {user_input}!{Colors.ENDC}")
+            print(f"{Colors.GREEN}Access Granted. Welcome, {user_input}!{Colors.ENDC}")
             return True
         else:
             attempts -= 1
             print(f"{Colors.RED}Invalid credentials.{Colors.ENDC}")
     
-    print(f"{Colors.RED}Too many failed attempts. Locking system.{Colors.ENDC}")
+    print(f"{Colors.RED}System Locked.{Colors.ENDC}")
     return False
 
 def save_tasks(tasks):                              # Saves Python List to JSON file

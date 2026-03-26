@@ -43,3 +43,6 @@ The app now has:
 2. Full CRUD (Create, Read, Update, Delete)
 3. Advanced CLI (8 Options, Colors, Sorting)
 4. Data Integrity (Validation, CSV Export)
+
+Step 20: The Security Engine & Gateway
+Step 21: Add a Forgot Password & Update the User Schema
