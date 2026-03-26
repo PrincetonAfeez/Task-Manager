@@ -230,6 +230,78 @@ def get_valid_priority():                           # Restricts priority options
         if choice in opts: return opts[choice]      # Return mapped word
         print(f"{Colors.RED}✖ Invalid selection.{Colors.ENDC}")
 
+def check_deadlines():
+    """Automatically alerts the user about overdue or upcoming tasks."""
+    tasks = load_tasks()
+    now = datetime.now()
+    overdue = []
+    upcoming = []
+
+    for t in tasks:
+        if t["due_date"] != "None" and not t["status"]:
+            try:
+                due = datetime.strptime(t["due_date"], "%Y-%m-%d")
+                if due < now:
+                    overdue.append(t["description"])
+                elif (due - now).days <= 1: # Due within 24 hours
+                    upcoming.append(t["description"])
+            except ValueError:
+                continue
+
+    if overdue:
+        print(f"{Colors.RED}{Colors.BOLD}⚠️ OVERDUE TASKS: {', '.join(overdue)}{Colors.ENDC}")
+    if upcoming:
+        print(f"{Colors.YELLOW}{Colors.BOLD}🔔 DUE SOON (24h): {', '.join(upcoming)}{Colors.ENDC}")
+
+def show_stats():
+    """Calculates and displays productivity analytics."""
+    tasks = load_tasks()
+    if not tasks:
+        print("No data for statistics.")
+        return
+    
+    total = len(tasks)
+    done = len([t for t in tasks if t["status"]])
+    pending = total - done
+    percent = (done / total) * 100
+    
+    print(f"\n{Colors.BOLD}{Colors.BLUE}--- PRODUCTIVITY DASHBOARD ---{Colors.ENDC}")
+    print(f"Total Tasks: {total}")
+    print(f"Completed:  {Colors.GREEN}{done}{Colors.ENDC}")
+    print(f"Pending:    {Colors.RED}{pending}{Colors.ENDC}")
+    print(f"Success Rate: {percent:.1f}%")
+    
+    # Simple ASCII Bar Chart
+    bar_length = 20
+    filled = int(bar_length * done // total)
+    bar = "█" * filled + "-" * (bar_length - filled)
+    print(f"Progress: [{Colors.GREEN}{bar}{Colors.ENDC}]")
+
+def archive_tasks():
+    """Moves completed tasks to a separate archive file to declutter."""
+    tasks = load_tasks()
+    completed = [t for t in tasks if t["status"]]
+    active = [t for t in tasks if not t["status"]]
+
+    if not completed:
+        print(f"{Colors.YELLOW}No completed tasks to archive.{Colors.ENDC}")
+        return
+
+    archive_file = "archive.json"
+    existing_archive = []
+    if os.path.exists(archive_file):
+        with open(archive_file, "r") as f:
+            try: existing_archive = json.load(f)
+            except: pass
+    
+    existing_archive.extend(completed)
+    
+    with open(archive_file, "w") as f:
+        json.dump(existing_archive, f, indent=4)
+    
+    save_tasks(active) # Save only the pending tasks back to the main file
+    print(f"{Colors.CYAN}✅ {len(completed)} tasks moved to archive.json!{Colors.ENDC}")
+
 # --- MAIN INTERFACE ---
 def main():                                         # Main Program Loop
     while True:                                     # Keep app running

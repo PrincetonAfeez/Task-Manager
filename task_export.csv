@@ -1,0 +1,6 @@
+id,description,priority,due_date,status,created_at
+1,Build an email/phone scrubber,High,2026-03-26,False,2026-03-26 15:02:07
+2,Password Strength Architect,Medium,2026-03-27,False,2026-03-26 15:02:58
+3,Licence Plate Validator,Medium,2026-03-27,False,2026-03-26 15:03:41
+4,Log File Parser,Low,2026-03-28,False,2026-03-26 15:05:23
+5,CSV to JSON converter,Low,2026-03-28,False,2026-03-26 15:06:11

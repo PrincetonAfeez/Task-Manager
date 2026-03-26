@@ -46,3 +46,4 @@ The app now has:
 
 Step 20: The Security Engine & Gateway
 Step 21: Add a Forgot Password & Update the User Schema
+Step 22: Adding Overdue Alerts, Analytics, and Data Archiving
