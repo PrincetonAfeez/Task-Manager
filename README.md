@@ -62,8 +62,10 @@ The Menu Mapping
 9. Archive: This is "Archive Completed" renamed for space (Option 9).
 10. Export & Exit: [CONSOLIDATED] I combined "Export to CSV" (Option 7) and "Exit" (Option 10) into one final command.
 
-Final Product:
+So far I have:
 1. Security: SHA-256 hashing and Password Recovery.
 2. Data Management: JSON storage, CSV Export, and Archiving.
 3. Intelligence: Proactive Deadline Alerts and Productivity Analytics.
 4. Efficiency: Bulk processing and integrated Time Tracking.
+
+Step 25: Added Project Categories
