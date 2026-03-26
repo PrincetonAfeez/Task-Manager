@@ -262,7 +262,29 @@ def bulk_action(action_type):
                 delete_task(t_id)
     except ValueError:
         print(f"{Colors.RED}✖ Error: Please use numbers and commas only.{Colors.ENDC}")
-        
+
+def toggle_timer(task_id):
+    """Starts or stops a timer for a specific task."""
+    tasks = load_tasks()
+    for t in tasks:
+        if t["id"] == task_id:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # If timer isn't running, start it
+            if t.get("timer_running") is None or t["timer_running"] == False:
+                t["timer_running"] = True
+                t["start_time"] = now
+                print(f"{Colors.GREEN}▶ Timer started for Task #{task_id}{Colors.ENDC}")
+            else:
+                # Calculate elapsed time
+                start = datetime.strptime(t["start_time"], "%Y-%m-%d %H:%M:%S")
+                elapsed = (datetime.now() - start).total_seconds() / 60
+                t["total_minutes"] = t.get("total_minutes", 0) + elapsed
+                t["timer_running"] = False
+                print(f"{Colors.YELLOW}■ Timer stopped. Added {elapsed:.1f} mins.{Colors.ENDC}")
+            save_tasks(tasks)
+            return
+    print(f"{Colors.RED}✖ Task not found.{Colors.ENDC}")
+    
 # --- MAIN CONTROLLER ---
 def main():
     """The master loop that keeps the application alive and interactive."""
