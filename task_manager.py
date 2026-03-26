@@ -114,16 +114,18 @@ def main():                                         # Define the primary app con
         print("3. Mark Task Done")
         print("4. Delete Task")
         print("5. Search Tasks")  # New Option
-        print("6. Exit")
+        print("6. Export to CSV")
+        print("7. Exit")
         
-        choice = input("\nChoose an option (1-5): ") # Ask the user for their choice
+        choice = input("\nChoose an option (1-7): ") # Ask the user for their choice
         
         if choice == "1":                           # If they chose 1...
             view_tasks()                            # Call the view function
         elif choice == "2":
             desc = input("Enter task description: ")
             pri = input("Enter priority (Low/Medium/High): ") or "Medium" # Defaults to Medium if empty
-            add_task(desc, pri)                          # Call the add function
+            due = input("Due Date (YYYY-MM-DD) or Enter to skip: ") or "None"
+            add_task(desc, pri, due)                          # Call the add function
         elif choice == "3":                         # If they chose 3...
             try:                                    # Use try/except to prevent crashes on bad input
                 t_id = int(input("Enter ID to mark done: ")) # Convert input string to integer
@@ -139,7 +141,9 @@ def main():                                         # Define the primary app con
         elif choice == "5":
             query = input("Enter search keyword: ")
             search_tasks(query)
-        elif choice == "6":                         # If they chose 6...
+        elif choice == "6":
+            export_to_csv()
+        elif choice == "7":                         # If they chose 7...
             print("Goodbye!")                       # Print a farewell message
             break                                   # Break the loop to close the program
         else:                                       # If they typed anything else...
