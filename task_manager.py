@@ -21,20 +21,22 @@ def save_tasks(tasks):                              # Define function to push da
         json.dump(tasks, file, indent=4)            # Save the list as JSON with 4-space indentation for readability
 
 # --- CORE LOGIC (CRUD) ---
-def add_task(description, priority="Medium"):      # Added a default 'Medium' priority
+def add_task(description, priority="Medium", due_date="None"): # Added 'due_date' here
+    """Creates a new task dictionary and appends it to our JSON file."""
     tasks = load_tasks()
+    
     new_task = {
         "id": len(tasks) + 1,
         "description": description,
-        "priority": priority,
-        "due_date": due_date,
+        "priority": priority,      # Ensure this matches
+        "due_date": due_date,      # Ensure this matches
         "status": False,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
+    
     tasks.append(new_task)
     save_tasks(tasks)
-    print(f"✔ Added: [{priority}] {description}") # Print a success message to the user
-    print(f"✔ Task added! Due: {due_date}")
+    print(f"✔ Task added successfully: '{description}'")
 
 def export_to_csv():
     """Converts the JSON database into a CSV file for Excel/Sheets."""
@@ -104,6 +106,41 @@ def search_tasks(keyword):
         for t in results:
             status = "Done" if t["status"] else "Pending"
             print(f"ID: {t['id']} | {t['description']} | [{t['priority']}] | {status}")
+
+def view_tasks_sorted(sort_by="id"):
+    """
+    Loads tasks and displays them sorted by a specific criteria.
+    sort_by options: 'id', 'priority', 'due_date'
+    """
+    tasks = load_tasks()
+    if not tasks:
+        print("\n--- No tasks found ---")
+        return
+
+    # Define a priority map to turn words into numbers for sorting
+    # This ensures 'High' (1) comes before 'Low' (3)
+    priority_order = {"High": 1, "Medium": 2, "Low": 3, "None": 4}
+
+    if sort_by == "priority":
+        tasks.sort(key=lambda x: priority_order.get(x.get("priority", "Medium"), 2))
+    elif sort_by == "due_date":
+        # We sort by due_date string; tasks with "None" go to the bottom
+        tasks.sort(key=lambda x: (x["due_date"] == "None", x["due_date"]))
+    else:
+        tasks.sort(key=lambda x: x["id"])
+
+    # Now call our existing table display logic (we can refactor view_tasks to accept a list)
+    display_task_table(tasks)
+
+def display_task_table(tasks_list):
+    """Helper function to print the table so we don't repeat code."""
+    print("\n" + "="*85)
+    print(f"{'ID':<4} | {'Description':<20} | {'Priority':<10} | {'Due':<12} | {'Status':<10}")
+    print("-" * 85)
+    for t in tasks_list:
+        status = "Done" if t["status"] else "Pending"
+        print(f"{t['id']:<4} | {t['description']:<20} | {t['priority']:<10} | {t['due_date']:<12} | {status:<10}")
+    print("="*85 + "\n")
 
 # --- USER INTERFACE ---
 def main():                                         # Define the primary app controller
