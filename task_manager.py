@@ -70,6 +70,20 @@ def delete_task(task_id):                           # Define function to Delete 
     else:                                           # If the lengths are the same, nothing was deleted
         print(f"✖ Error: Task with ID {task_id} not found.") # Tell the user the ID was wrong
 
+def search_tasks(keyword):
+    """Finds tasks where the description contains the keyword."""
+    tasks = load_tasks()
+    # Filter the list: keep task if keyword is inside description (case-insensitive)
+    results = [t for t in tasks if keyword.lower() in t["description"].lower()]
+    
+    if not results:
+        print(f"No tasks found matching '{keyword}'")
+    else:
+        print(f"\n--- Search Results for '{keyword}' ---")
+        for t in results:
+            status = "Done" if t["status"] else "Pending"
+            print(f"ID: {t['id']} | {t['description']} | [{t['priority']}] | {status}")
+            
 # --- USER INTERFACE ---
 def main():                                         # Define the primary app controller
     while True:                                     # Start an infinite loop to keep the app open
