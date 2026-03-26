@@ -202,7 +202,7 @@ def get_valid_priority():
         if choice in options:
             return options[choice]
         print(f"{Colors.RED}✖ Invalid choice. Please pick 1, 2, or 3.{Colors.ENDC}")
-        
+
 # --- USER INTERFACE ---
 def main():                                         # Define the primary app controller
     while True:                                     # Start an infinite loop to keep the app open
@@ -220,9 +220,9 @@ def main():                                         # Define the primary app con
         if choice == "1":                           # If they chose 1...
             view_tasks()                            # Call the view function
         elif choice == "2":
-            desc = input("Enter task description: ")
-            pri = input("Enter priority (Low/Medium/High): ") or "Medium" # Defaults to Medium if empty
-            due = input("Due Date (YYYY-MM-DD) or Enter to skip: ") or "None"
+            desc = get_non_empty_input("Enter task description: ")
+            pri = get_valid_priority()
+            due = get_valid_date("Enter due date (YYYY-MM-DD) or [Enter] for None: ")
             add_task(desc, pri, due)                          # Call the add function
         elif choice == "3":                         # If they chose 3...
             try:                                    # Use try/except to prevent crashes on bad input
