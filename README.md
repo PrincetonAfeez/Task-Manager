@@ -47,3 +47,23 @@ The app now has:
 Step 20: The Security Engine & Gateway
 Step 21: Add a Forgot Password & Update the User Schema
 Step 22: Adding Overdue Alerts, Analytics, and Data Archiving
+Step 23: Adding Tags, Time Tracking, and Bulk Actions
+Step 24: Re-mapped the menu
+
+The Menu Mapping
+1. View All: This replaces "View Tasks" (Option 1).
+2. Add Task: Stays the same (Option 2).
+3. Search/Tags: This merges "Search Tasks" (Option 5) with the new #Tag filtering.
+4. Bulk Mark Done: This is an "Update" upgrade. It replaces the single "Mark Task Done" (Option 3) because it can do one or many tasks at once.
+5. Bulk Delete: This is a "Delete" upgrade. It replaces the single "Delete Task" (Option 4).
+6. Sort View: Stays the same as "Sort Tasks" (Option 6).
+7. Toggle Timer: [NEW] The Time Tracker.
+8. Productivity: This is "Productivity Stats" renamed for space (Option 8).
+9. Archive: This is "Archive Completed" renamed for space (Option 9).
+10. Export & Exit: [CONSOLIDATED] I combined "Export to CSV" (Option 7) and "Exit" (Option 10) into one final command.
+
+Final Product:
+1. Security: SHA-256 hashing and Password Recovery.
+2. Data Management: JSON storage, CSV Export, and Archiving.
+3. Intelligence: Proactive Deadline Alerts and Productivity Analytics.
+4. Efficiency: Bulk processing and integrated Time Tracking.
