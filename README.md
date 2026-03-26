@@ -69,3 +69,4 @@ So far I have:
 4. Efficiency: Bulk processing and integrated Time Tracking.
 
 Step 25: Added Project Categories
+Step 26: Adding Auto-Escalation, Dependencies, and Gamification

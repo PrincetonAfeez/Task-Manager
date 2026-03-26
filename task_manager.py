@@ -2,12 +2,12 @@ import json                                         # Library to read/write JSON
 import os                                           # Library to interact with the operating system (file checks)
 import csv                                          # Library to handle CSV generation for spreadsheet exports
 import hashlib                                      # Library to transform passwords into secure, non-readable hashes
-from datetime import datetime                       # Library to handle system time and date formatting
+from datetime import datetime, timedelta            # Library to handle system time, date formatting, and math
 
 # --- CONFIGURATION ---
 DATA_FILE = "tasks.json"                            # Primary file for storing user tasks
-USER_FILE = "users.json"                            # Secure file for storing hashed credentials
-ARCHIVE_FILE = "archive.json"                       # File for storing "completed" tasks moved out of main view
+USER_FILE = "users.json"                            # Secure file for storing hashed credentials and player stats
+ARCHIVE_FILE = "archive.json"                       # File for storing completed tasks moved out of main view
 
 # --- TERMINAL COLORS (ANSI ESCAPE CODES) ---
 class Colors:
@@ -15,340 +15,272 @@ class Colors:
     BLUE = '\033[94m'                               # Blue: Used for titles and success messages
     GREEN = '\033[92m'                              # Green: Indicates 'Done' or positive results
     YELLOW = '\033[93m'                             # Yellow: Indicates 'Medium' priority or warnings
-    RED = '\033[91m'                                # Red: Indicates 'High' priority, Overdue, or Errors
+    RED = '\033[91m'                                # Red: Indicates 'High' priority or Errors
     CYAN = '\033[96m'                               # Cyan: Indicates 'Low' priority or neutral info
-    ENDC = '\033[0m'                                # Reset: Vital to stop color bleed after a string
+    GOLD = '\033[33m'                               # Gold: Used for Leveling and XP rewards
+    FLASH = '\033[5m'                               # Flash: Makes text blink (used for Escalated tasks)
     BOLD = '\033[1m'                                # Bold: Enhances visibility for headers
+    ENDC = '\033[0m'                                # Reset: Vital to stop color bleed
 
 # --- SECURITY & AUTHENTICATION ---
 def hash_password(password):
     """Encodes a string into a SHA-256 hex digest for security."""
-    return hashlib.sha256(password.encode()).hexdigest() 
+    return hashlib.sha256(password.encode()).hexdigest() # Returns a 64-character secure string
 
 def setup_account():
-    """Initializes the admin account if the user file is missing."""
-    if not os.path.exists(USER_FILE):               
-        print(f"{Colors.BOLD}{Colors.CYAN}--- INITIAL SECURITY SETUP ---{Colors.ENDC}")
-        username = get_non_empty_input("Create Admin Username: ") 
-        password = get_non_empty_input("Create Admin Password: ") 
-        print(f"\n{Colors.YELLOW}Set a Recovery Question (to reset if forgotten){Colors.ENDC}")
-        question = get_non_empty_input("Question (e.g., Favorite City): ") 
-        answer = get_non_empty_input("Answer: ")                  
-        
+    """Initializes the admin account and player stats if missing."""
+    if not os.path.exists(USER_FILE):               # Only trigger on the very first run
+        print(f"{Colors.BOLD}{Colors.CYAN}--- INITIAL SECURITY & PLAYER SETUP ---{Colors.ENDC}")
+        u = get_non_empty_input("Create Admin Username: ") # Force non-blank input
+        p = get_non_empty_input("Create Admin Password: ") # Force non-blank input
+        q = get_non_empty_input("Recovery Question (e.g. First Pet): ") # Recovery hint
+        a = get_non_empty_input("Answer: ")                  # Proof of ownership
         user_data = {
-            "username": username,
-            "password": hash_password(password),    
-            "recovery_question": question,
-            "recovery_answer": hash_password(answer.lower()) 
+            "username": u, "password": hash_password(p), 
+            "q": q, "a": hash_password(a.lower()),  # Store answer hash (case-insensitive)
+            "xp": 0, "level": 1                     # Initialize Gamification stats
         }
-        with open(USER_FILE, "w") as f:             
-            json.dump(user_data, f, indent=4)
-        print(f"{Colors.GREEN}Account created successfully!{Colors.ENDC}\n")
-
-def reset_password():
-    """Validates the recovery question to allow password modification."""
-    if not os.path.exists(USER_FILE): return False  
-    with open(USER_FILE, "r") as f:
-        data = json.load(f)                         
-    print(f"\n{Colors.BOLD}--- PASSWORD RECOVERY ---{Colors.ENDC}")
-    print(f"Question: {data['recovery_question']}")
-    ans_input = input("Your Answer: ").strip().lower() 
-    if hash_password(ans_input) == data['recovery_answer']: 
-        new_p = get_non_empty_input("Enter New Password: ") 
-        data['password'] = hash_password(new_p)     
-        with open(USER_FILE, "w") as f:
-            json.dump(data, f, indent=4)            
-        print(f"{Colors.GREEN}Password updated! You may now login.{Colors.ENDC}")
-        return True                                 
-    print(f"{Colors.RED}Incorrect answer. Recovery failed.{Colors.ENDC}")
-    return False                                    
+        with open(USER_FILE, "w") as f: json.dump(user_data, f, indent=4) # Write JSON profile
+        print(f"{Colors.GREEN}Account and Player Profile created!{Colors.ENDC}\n")
 
 def login():
-    """The gateway function that protects the app on startup."""
-    setup_account()                                 
-    if not os.path.exists(USER_FILE): return False  
-    with open(USER_FILE, "r") as f:
-        stored = json.load(f)                       
-    attempts = 3                                    
-    while attempts > 0:
-        print(f"\n{Colors.BOLD}Login Required ({attempts} tries left){Colors.ENDC}")
-        print("Tip: Type 'forgot' for recovery or 'exit' to quit.")
-        u_input = input("Username: ").strip()       
-        if u_input.lower() == 'exit': exit()        
-        if u_input.lower() == 'forgot':             
-            if reset_password(): attempts = 3; continue 
-            else: attempts -= 1; continue           
-        p_input = input("Password: ").strip()       
-        if u_input == stored["username"] and hash_password(p_input) == stored["password"]:
-            print(f"{Colors.GREEN}Access Granted. Welcome, {u_input}!{Colors.ENDC}")
-            return True                             
-        attempts -= 1                               
-        print(f"{Colors.RED}Invalid credentials.{Colors.ENDC}")
-    return False                                    
+    """The gateway function that protects the app and manages recovery."""
+    setup_account()                                 # Run first-time setup if needed
+    with open(USER_FILE, "r") as f: user = json.load(f) # Retrieve credentials and stats
+    for i in range(3, 0, -1):                       # User gets 3 attempts
+        print(f"\n{Colors.BOLD}Login Required ({i} tries left). Type 'forgot' for recovery.{Colors.ENDC}")
+        u_input = input("Username: ").strip()       # Get username
+        if u_input.lower() == 'exit': exit()        # Allow clean exit
+        if u_input.lower() == 'forgot':             # Recovery flow
+            print(f"Question: {user['q']}")         # Show the hint
+            if hash_password(input("Answer: ").lower()) == user['a']: # Check answer hash
+                user['password'] = hash_password(get_non_empty_input("New Password: ")) # Update pass
+                with open(USER_FILE, "w") as f: json.dump(user, f, indent=4) # Save update
+                print(f"{Colors.GREEN}Password Reset!{Colors.ENDC}"); continue # Restart loop
+        p_input = input("Password: ").strip()       # Get password
+        if u_input == user["username"] and hash_password(p_input) == user["password"]:
+            print(f"{Colors.GREEN}Access Granted! [Lvl {user.get('level', 1)}]{Colors.ENDC}")
+            return True                             # Unlock the app
+    return False                                    # Fail after 3 tries
 
 # --- STORAGE ENGINE ---
 def load_tasks():
-    """Reads tasks from JSON and returns them as a Python list."""
+    """Reads tasks from JSON; returns empty list if file is missing or broken."""
     if not os.path.exists(DATA_FILE): return []     
-    with open(DATA_FILE, "r") as file:
-        try: return json.load(file)                 
-        except json.JSONDecodeError: return []      
+    with open(DATA_FILE, "r") as f:
+        try: return json.load(f)                 
+        except: return []                           
 
 def save_tasks(tasks):
-    """Writes the current task list into the JSON file with pretty-print."""
-    with open(DATA_FILE, "w") as file:
-        json.dump(tasks, file, indent=4)            
+    """Writes the task list to JSON with 4-space indentation."""
+    with open(DATA_FILE, "w") as f: json.dump(tasks, f, indent=4)            
 
-# --- CORE LOGIC (CRUD & DASHBOARD) ---
-def add_task(description, priority="Medium", due_date="None", category="General"):
-    """Appends a new task dictionary to the master database."""
-    tasks = load_tasks()                            
+# --- CORE LOGIC & FEATURES ---
+def add_task(desc, pri, due, cat):
+    """Creates a task with metadata, categories, and optional dependencies."""
+    tasks = load_tasks()                            # Load existing data
+    print("Is this blocked by another task? (Enter ID or press Enter for none)")
+    dep = input("Blocked by ID: ").strip()          # Dependency tracking
     new_task = {
-        "id": max([t["id"] for t in tasks], default=0) + 1, 
-        "description": description,
-        "priority": priority,
-        "due_date": due_date,
-        "category": category,                       # New Category field
-        "status": False,                            
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "total_minutes": 0,                         
-        "timer_running": False                      
+        "id": max([t["id"] for t in tasks], default=0) + 1, # Generate unique ID
+        "description": desc, "priority": pri, "due_date": due, "category": cat,
+        "status": False, "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "total_minutes": 0, "timer_running": False, # Initialize time tracking
+        "blocked_by": int(dep) if dep.isdigit() else None # Link to another task
     }
-    tasks.append(new_task)                          
-    save_tasks(tasks)                               
-    print(f"{Colors.GREEN}✔ Task added successfully to [{category}]!{Colors.ENDC}")
-
-def display_task_table(tasks_list):
-    """A reusable UI engine to print data in a color-coded table format."""
-    if not tasks_list:                              
-        print(f"\n{Colors.YELLOW}--- No tasks to display ---{Colors.ENDC}")
-        return
-    # Expanded width for Category column
-    print("\n" + Colors.BOLD + Colors.HEADER + "="*135 + Colors.ENDC)
-    print(f"{Colors.BOLD}{'ID':<4} | {'Category':<12} | {'Description':<25} | {'Priority':<10} | {'Due':<12} | {'Time (m)':<8} | {'Status':<10}{Colors.ENDC}")
-    print("-" * 135)                                
-    for t in tasks_list:                            
-        p_val = t.get("priority", "Medium")
-        p_col = Colors.RED if p_val == "High" else Colors.YELLOW if p_val == "Medium" else Colors.CYAN
-        s_txt = f"{Colors.GREEN}Done{Colors.ENDC}" if t["status"] else f"{Colors.RED}Pending{Colors.ENDC}"
-        cat = t.get("category", "General")
-        t_min = f"{t.get('total_minutes', 0):.1f}"   
-        t_active = f"{Colors.BLUE}▶{Colors.ENDC} " if t.get("timer_running") else "  "
-        print(f"{t['id']:<4} | {cat:<12} | {t['description']:<25} | {p_col}{p_val:<10}{Colors.ENDC} | {t['due_date']:<12} | {t_active}{t_min:<8} | {s_txt:<10}")
-    print(Colors.BOLD + Colors.HEADER + "="*135 + Colors.ENDC + "\n")
-
-def search_tasks(query):
-    """Filters tasks based on keyword, #tag, or category name."""
-    tasks = load_tasks()
-    query = query.lower()
-    results = [t for t in tasks if query in t["description"].lower() or query in t.get("category", "General").lower()]
-    display_task_table(results)                     
-
-def view_tasks_sorted(sort_by):
-    """Orders tasks based on priority weight, due date, category, or ID."""
-    tasks = load_tasks()
-    if not tasks: return
-    p_map = {"High": 1, "Medium": 2, "Low": 3, "None": 4} 
-    if sort_by == "priority": tasks.sort(key=lambda x: p_map.get(x["priority"], 2))
-    elif sort_by == "due_date": tasks.sort(key=lambda x: (x["due_date"] == "None", x["due_date"]))
-    elif sort_by == "category": tasks.sort(key=lambda x: x.get("category", "General"))
-    else: tasks.sort(key=lambda x: x["id"])         
-    display_task_table(tasks)                       
+    tasks.append(new_task)                          # Add to list
+    save_tasks(tasks)                               # Commit to disk
+    print(f"{Colors.GREEN}✔ Task added to [{cat}]!{Colors.ENDC}")
 
 def mark_done(task_id):
-    """Updates a task's status to True."""
-    tasks = load_tasks()
-    found = False
+    """Updates status, enforces dependencies, and awards XP."""
+    tasks = load_tasks()                            # Load database
     for t in tasks:
-        if t["id"] == task_id:                      
-            t["status"] = True                      
-            found = True; break                     
-    if found: 
-        save_tasks(tasks)
-        print(f"{Colors.GREEN}✔ Task #{task_id} completed!{Colors.ENDC}")
-    else: print(f"{Colors.RED}✖ Task ID #{task_id} not found.{Colors.ENDC}")
+        if t["id"] == task_id:                      # Find target task
+            if t.get("blocked_by"):                 # Check for blockers
+                blocker = next((x for x in tasks if x["id"] == t["blocked_by"]), None)
+                if blocker and not blocker["status"]: # Blocker must be 'Done'
+                    print(f"{Colors.RED}✖ BLOCKED: Finish Task #{t['blocked_by']} first!{Colors.ENDC}")
+                    return
+            if not t["status"]:                     # If not already done
+                t["status"] = True                  # Mark complete
+                save_tasks(tasks)                   # Save change
+                award_xp(t["priority"])             # Trigger Gamification
+                print(f"{Colors.GREEN}✔ Task #{task_id} marked Done!{Colors.ENDC}")
+                return
+    print(f"{Colors.RED}✖ Task ID not found.{Colors.ENDC}")
 
-def delete_task(task_id):
-    """Removes a task entry permanently."""
-    tasks = load_tasks()
-    new_tasks = [t for t in tasks if t["id"] != task_id]
-    if len(new_tasks) < len(tasks):                 
-        save_tasks(new_tasks)
-        print(f"{Colors.CYAN}🗑 Task #{task_id} deleted.{Colors.ENDC}")
-    else: print(f"{Colors.RED}✖ Task ID #{task_id} not found.{Colors.ENDC}")
-
-def export_to_csv():
-    """Generates a CSV file of the current task list."""
-    tasks = load_tasks()
-    if not tasks: print(f"{Colors.RED}Nothing to export!{Colors.ENDC}"); return
-    filename = "task_export.csv"
-    with open(filename, "w", newline="") as f:      
-        writer = csv.DictWriter(f, fieldnames=tasks[0].keys()) 
-        writer.writeheader(); writer.writerows(tasks) 
-    print(f"{Colors.CYAN}✅ Exported to {filename}{Colors.ENDC}")
+def award_xp(priority):
+    """Calculates XP based on difficulty and handles player Level Ups."""
+    gain = {"High": 50, "Medium": 20, "Low": 10}.get(priority, 10) # Difficulty mapping
+    with open(USER_FILE, "r") as f: user = json.load(f) # Get current stats
+    user["xp"] = user.get("xp", 0) + gain           # Add XP
+    new_lvl = (user["xp"] // 200) + 1               # Calculate level (1 per 200XP)
+    if new_lvl > user.get("level", 1):              # Level up notification
+        print(f"{Colors.GOLD}{Colors.BOLD}⭐ LEVEL UP! You are now Level {new_lvl}!{Colors.ENDC}")
+    user["level"] = new_lvl                         # Update level
+    with open(USER_FILE, "w") as f: json.dump(user, f, indent=4) # Save stats
+    print(f"{Colors.GOLD}✨ +{gain} XP Gained!{Colors.ENDC}")
 
 def check_deadlines():
-    """Scans for overdue or upcoming tasks."""
-    tasks = load_tasks(); now = datetime.now()
-    overdue, soon = [], []                          
+    """Scans for deadlines and performs 'Auto-Escalation' on stagnant tasks."""
+    tasks = load_tasks(); now = datetime.now(); alerts = [] # Setup
     for t in tasks:
-        if t["due_date"] != "None" and not t["status"]:
-            try:
+        if not t["status"]:                         # Only check pending tasks
+            created = datetime.strptime(t["created_at"], "%Y-%m-%d %H:%M:%S")
+            # Auto-Escalation: High Priority tasks older than 3 days start flashing
+            if (now - created).days >= 3 and t["priority"] == "High":
+                t["escalated"] = True               # Trigger visual flag
+                alerts.append(f"🔥 STAGNANT: {t['description']}")
+            if t["due_date"] != "None":             # Check date deadlines
                 due = datetime.strptime(t["due_date"], "%Y-%m-%d")
-                if due < now: overdue.append(t["description"]) 
-                elif (due - now).days <= 1: soon.append(t["description"]) 
-            except ValueError: continue             
-    if overdue: print(f"{Colors.RED}{Colors.BOLD}⚠️ OVERDUE: {', '.join(overdue)}{Colors.ENDC}")
-    if soon: print(f"{Colors.YELLOW}{Colors.BOLD}🔔 DUE SOON (24h): {', '.join(soon)}{Colors.ENDC}")
+                if due < now: alerts.append(f"⚠️ OVERDUE: {t['description']}")
+                elif (due - now).days <= 1: alerts.append(f"🔔 DUE SOON: {t['description']}")
+    if alerts: print(f"{Colors.RED}{Colors.BOLD}" + "\n".join(alerts) + f"{Colors.ENDC}")
+    save_tasks(tasks)                               # Save any escalation flags
 
-def show_stats():
-    """Visual dashboard for productivity metrics."""
-    tasks = load_tasks()
-    if not tasks: print("No tasks for stats."); return
-    total = len(tasks)                              
-    done = len([t for t in tasks if t["status"]])   
-    total_time = sum(t.get("total_minutes", 0) for t in tasks)
-    percent = (done / total) * 100 if total > 0 else 0
-    print(f"\n{Colors.BOLD}{Colors.BLUE}--- STATS DASHBOARD ---{Colors.ENDC}")
-    print(f"Total: {total} | Completed: {done} | Time Spent: {total_time:.1f} mins")
-    
-    # Category breakdown
-    cats = {}
-    for t in tasks:
-        c = t.get("category", "General")
-        cats[c] = cats.get(c, 0) + 1
-    print(f"Categories: {', '.join([f'{k}({v})' for k,v in cats.items()])}")
+def display_task_table(tasks_list):
+    """Renders a comprehensive, color-coded UI table for all data."""
+    if not tasks_list: print(f"\n{Colors.YELLOW}--- No Tasks Found ---{Colors.ENDC}"); return
+    print("\n" + Colors.BOLD + Colors.HEADER + "="*145 + Colors.ENDC)
+    print(f"{Colors.BOLD}{'ID':<4} | {'Category':<12} | {'Description':<25} | {'Priority':<12} | {'Due':<12} | {'Blocked By':<10} | {'Status':<10}{Colors.ENDC}")
+    print("-" * 145)
+    for t in tasks_list:
+        p_val = t.get("priority", "Medium")         # Priority text
+        # If Escalated, add flashing red; otherwise normal colors
+        p_col = (Colors.RED + Colors.FLASH) if t.get("escalated") else Colors.RED if p_val == "High" else Colors.YELLOW if p_val == "Medium" else Colors.CYAN
+        s_txt = f"{Colors.GREEN}Done{Colors.ENDC}" if t["status"] else f"{Colors.RED}Pending{Colors.ENDC}"
+        dep = f"#{t['blocked_by']}" if t.get("blocked_by") else "None" # Show blocker ID
+        print(f"{t['id']:<4} | {t.get('category',''):<12} | {t['description']:<25} | {p_col}{p_val:<12}{Colors.ENDC} | {t['due_date']:<12} | {dep:<10} | {s_txt:<10}")
+    print(Colors.BOLD + Colors.HEADER + "="*145 + Colors.ENDC + "\n")
 
-    print(f"Success Rate: {percent:.1f}%")
-    bar = "█" * int(percent // 5) + "-" * (20 - int(percent // 5)) 
-    print(f"Progress: [{Colors.GREEN}{bar}{Colors.ENDC}]")
-
-def archive_tasks():
-    """Moves 'Done' tasks to archive.json."""
-    tasks = load_tasks()
-    done = [t for t in tasks if t["status"]]        
-    active = [t for t in tasks if not t["status"]]  
-    if not done: return 
-    old_archive = []
-    if os.path.exists(ARCHIVE_FILE):                
-        with open(ARCHIVE_FILE, "r") as f:
-            try: old_archive = json.load(f)
-            except: pass
-    old_archive.extend(done)                        
-    with open(ARCHIVE_FILE, "w") as f: json.dump(old_archive, f, indent=4)
-    save_tasks(active)                              
-
-def bulk_action(action_type):
-    """Handles multiple IDs for completion or deletion."""
-    raw_ids = input(f"IDs to {action_type} (e.g. 1, 2, 5): ").strip()
-    if not raw_ids: return
-    try:
-        target_ids = [int(i.strip()) for i in raw_ids.split(",")]
-        for t_id in target_ids:
-            if action_type == "done": mark_done(t_id)
-            elif action_type == "delete": delete_task(t_id)
-    except ValueError: print(f"{Colors.RED}✖ Error: Use numbers and commas only.{Colors.ENDC}")
-
+# --- UTILITIES & ROUTING ---
 def toggle_timer(task_id):
-    """Starts/Stops a task timer."""
-    tasks = load_tasks()
+    """Starts/Stops the timer; persists time even after closing app."""
+    tasks = load_tasks()                            # Load
     for t in tasks:
-        if t["id"] == task_id:
+        if t["id"] == task_id:                      # Find
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if not t.get("timer_running"):
-                t["timer_running"] = True
-                t["start_time"] = now_str
-                print(f"{Colors.GREEN}▶ Timer started for Task #{task_id}{Colors.ENDC}")
-            else:
+            if not t.get("timer_running"):          # Start path
+                t["timer_running"] = True; t["start_time"] = now_str
+                print(f"{Colors.GREEN}▶ Timer Started.{Colors.ENDC}")
+            else:                                   # Stop path
                 start = datetime.strptime(t.get("start_time", now_str), "%Y-%m-%d %H:%M:%S")
                 elapsed = (datetime.now() - start).total_seconds() / 60
                 t["total_minutes"] = t.get("total_minutes", 0) + elapsed
-                t["timer_running"] = False
-                print(f"{Colors.YELLOW}■ Timer stopped. Added {elapsed:.1f} mins.{Colors.ENDC}")
-            save_tasks(tasks)
-            return
-    print(f"{Colors.RED}✖ Task ID #{task_id} not found.{Colors.ENDC}")
+                t["timer_running"] = False          # Reset state
+                print(f"{Colors.YELLOW}■ Stopped. +{elapsed:.1f}m{Colors.ENDC}")
+            save_tasks(tasks); return               # Save
+    print(f"{Colors.RED}✖ ID not found.{Colors.ENDC}")
 
-# --- VALIDATION UTILITIES ---
-def get_non_empty_input(prompt):
-    """Prompt that rejects blank strings."""
-    while True:
-        v = input(prompt).strip()
-        if v: return v                              
-        print(f"{Colors.RED}✖ Cannot be empty.{Colors.ENDC}")
+def bulk_action(action_type):
+    """Processes multiple task IDs for deletion or completion."""
+    raw = input(f"Enter IDs to {action_type} (e.g. 1, 3, 5): ").strip()
+    if not raw: return
+    try:
+        ids = [int(i.strip()) for i in raw.split(",")] # Parse list
+        for t_id in ids:
+            if action_type == "done": mark_done(t_id)
+            else: delete_task(t_id)
+    except: print(f"{Colors.RED}✖ Invalid ID format.{Colors.ENDC}")
 
-def get_valid_date(prompt):
-    """Prompt for YYYY-MM-DD or empty."""
+def show_stats():
+    """Displays productivity metrics and gamification levels."""
+    tasks = load_tasks(); total = len(tasks)
+    done = len([t for t in tasks if t["status"]])
+    with open(USER_FILE, "r") as f: u = json.load(f) # Get player stats
+    print(f"\n{Colors.BOLD}{Colors.BLUE}--- PLAYER STATS ---{Colors.ENDC}")
+    print(f"Level: {u['level']} | Total XP: {u['xp']} | Completion: {done}/{total}")
+    bar = "█" * (int((done/total)*20) if total > 0 else 0) # ASCII Progress bar
+    print(f"Progress: [{Colors.GREEN}{bar:<20}{Colors.ENDC}]")
+
+# [The following helper functions are refactored for input validation]
+def get_non_empty_input(p): 
     while True:
-        v = input(prompt).strip()
-        if not v: return "None"                     
-        try:
-            datetime.strptime(v, "%Y-%m-%d")        
-            return v
-        except ValueError: print(f"{Colors.RED}✖ Use YYYY-MM-DD format.{Colors.ENDC}")
+        v = input(p).strip()
+        if v: return v
+        print("✖ Field required.")
+
+def get_valid_date(p):
+    while True:
+        v = input(p).strip()
+        if not v: return "None"
+        try: datetime.strptime(v, "%Y-%m-%d"); return v
+        except: print("✖ Format: YYYY-MM-DD")
 
 def get_valid_priority():
-    """Prompt for 1-3 priority selection."""
-    opts = {"1": "High", "2": "Medium", "3": "Low"}
-    while True:
-        print(f"{Colors.CYAN}Priority: (1) High (2) Medium (3) Low{Colors.ENDC}")
-        c = input("Select 1-3 [Default 2]: ").strip()
-        if not c: return "Medium"                   
-        if c in opts: return opts[c]                
-        print(f"{Colors.RED}✖ Invalid Choice.{Colors.ENDC}")
+    opts = {"1":"High", "2":"Medium", "3":"Low"}
+    print(f"{Colors.CYAN}(1)High (2)Med (3)Low{Colors.ENDC}")
+    return opts.get(input("Select [2]: "), "Medium")
 
 def get_category():
-    """Handles category selection or custom creation."""
     tasks = load_tasks()
-    # Find existing unique categories
-    existing = list(set([t.get("category", "General") for t in tasks]))
-    print(f"\n{Colors.CYAN}Categories: {', '.join(existing)}{Colors.ENDC}")
-    c = input("Type existing category or new name [Default General]: ").strip()
-    return c if c else "General"
+    cats = list(set([t.get("category", "General") for t in tasks])) # Unique categories
+    print(f"{Colors.CYAN}Existing: {', '.join(cats)}{Colors.ENDC}")
+    v = input("Category [General]: ").strip()
+    return v if v else "General"
 
-# --- ROUTING & MENU ---
+def delete_task(task_id):
+    tasks = load_tasks()
+    new_tasks = [t for t in tasks if t["id"] != task_id]
+    if len(new_tasks) < len(tasks): save_tasks(new_tasks); print(f"🗑 Deleted #{task_id}")
+
+def view_tasks_sorted(sort_by):
+    tasks = load_tasks(); p_map = {"High":1, "Medium":2, "Low":3}
+    if sort_by == "priority": tasks.sort(key=lambda x: p_map.get(x["priority"], 2))
+    elif sort_by == "due_date": tasks.sort(key=lambda x: (x["due_date"] == "None", x["due_date"]))
+    elif sort_by == "category": tasks.sort(key=lambda x: x.get("category", "General"))
+    display_task_table(tasks)
+
+def export_to_csv():
+    tasks = load_tasks()
+    if not tasks: return
+    with open("task_export.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=tasks[0].keys())
+        writer.writeheader(); writer.writerows(tasks)
+    print("✅ Exported to task_export.csv")
+
+def archive_tasks():
+    tasks = load_tasks(); done = [t for t in tasks if t["status"]]; active = [t for t in tasks if not t["status"]]
+    if not done: return
+    if os.path.exists(ARCHIVE_FILE):
+        with open(ARCHIVE_FILE, "r") as f: old = json.load(f)
+    else: old = []
+    old.extend(done); save_tasks(active)
+    with open(ARCHIVE_FILE, "w") as f: json.dump(old, f, indent=4)
+
+# --- ROUTER & MAIN LOOP ---
 def handle_choice(choice):
-    """Routes user input to the correct function."""
+    """Modular routing of all menu actions."""
     if choice == "1": display_task_table(load_tasks())
-    elif choice == "2":
-        desc = get_non_empty_input("Description: ")
-        pri = get_valid_priority()
-        due = get_valid_date("Due Date: ")
-        cat = get_category()
-        add_task(desc, pri, due, cat)
+    elif choice == "2": add_task(get_non_empty_input("Desc: "), get_valid_priority(), get_valid_date("Due: "), get_category())
     elif choice == "3": 
-        search_tasks(input("Search Keyword, #Tag, or Category: "))
+        q = input("Search Keyword/Tag/Category: ").lower()
+        display_task_table([t for t in load_tasks() if q in t['description'].lower() or q in t.get('category','').lower()])
     elif choice == "4": bulk_action("done")
     elif choice == "5": bulk_action("delete")
     elif choice == "6":
-        print("\nSort by: (1) Priority (2) Due Date (3) Category (4) ID")
-        s_map = {"1": "priority", "2": "due_date", "3": "category", "4": "id"}
-        view_tasks_sorted(s_map.get(input("Choice: "), "id"))
+        s_map = {"1": "priority", "2": "due_date", "3": "category"}
+        view_tasks_sorted(s_map.get(input("Sort (1.Pri 2.Due 3.Cat): "), "id"))
     elif choice == "7":
-        try: toggle_timer(int(input("Task ID to Start/Stop: ")))
-        except ValueError: print(f"{Colors.RED}✖ Enter a numeric ID.{Colors.ENDC}")
+        try: toggle_timer(int(input("Task ID: ")))
+        except: print("✖ Enter numeric ID")
     elif choice == "8": show_stats()
     elif choice == "9": export_to_csv()
-    elif choice == "10": 
-        archive_tasks() 
-        print(f"{Colors.CYAN}Session archived. Goodbye!{Colors.ENDC}")
-        return False 
-    else: print(f"{Colors.RED}✖ Invalid choice (1-10).{Colors.ENDC}")
-    return True 
+    elif choice == "10": archive_tasks(); print("System Offline."); return False
+    return True
 
 def main():
-    """Displays the menu and drives the application."""
-    check_deadlines()                               
+    """Main Application Loop."""
+    check_deadlines()                               # Initial login alerts
     running = True
     while running:
-        print(f"\n{Colors.BOLD}{Colors.BLUE}--- TASK MANAGER ULTIMATE ---{Colors.ENDC}")
+        print(f"\n{Colors.BOLD}{Colors.BLUE}--- TASK MANAGER LEGENDARY ---{Colors.ENDC}")
         print("1. View All         2. Add Task         3. Search/Filter")
         print("4. Bulk Done        5. Bulk Delete      6. Sort Tasks")
-        print("7. Toggle Timer     8. Productivity     9. Export CSV")
+        print("7. Toggle Timer     8. Player Stats     9. Export CSV")
         print("10. Archive & Exit")
-        
         running = handle_choice(input("\nSelect (1-10): ").strip())
 
 if __name__ == "__main__":
-    if login(): main()                              
-    else: exit()
+    if login(): main()                              # Authenticate then run
