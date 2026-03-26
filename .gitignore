@@ -1,6 +1,7 @@
 # Python bytecode
 __pycache__/
 *.py[cod]
+.pytest_cache/
 
 # Local data (do not commit credentials or personal tasks)
 tasks.json

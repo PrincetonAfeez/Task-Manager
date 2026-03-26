@@ -1,6 +1,12 @@
 # Task Manager (CLI)
 
-A Python CLI that demonstrates **lists/dictionaries**, **JSON persistence**, **CRUD**, and a full menu-driven workflow. Dependencies: **Python 3** only (`requirements.txt` lists no third-party packages).
+A **Python 3** CLI task manager with **Rich** tables and prompts, **atomic JSON** persistence, CSV import/export, recurrence, notes, filters, and optional **password gate**.
+
+## Install
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Run
 
@@ -8,51 +14,69 @@ A Python CLI that demonstrates **lists/dictionaries**, **JSON persistence**, **C
 python task_manager.py
 ```
 
-On first run you create a local admin account (`users.json`). Task data is stored in `tasks.json`. Completed tasks can be moved to `archive.json` via **Archive & Exit**.
+Or:
+
+```bash
+python -m tm
+```
+
+### Data directory
+
+By default, `tasks.json`, `users.json`, and `archive.json` live in the **current working directory**. Override with:
+
+```bash
+set TASK_MANAGER_DATA_DIR=C:\path\to\data
+python task_manager.py
+```
+
+(On PowerShell: `$env:TASK_MANAGER_DATA_DIR="C:\path\to\data"`.)
+
+## Tests
+
+```bash
+pytest
+```
 
 ## Features
 
-| Area | What it does |
-|------|----------------|
-| Tasks | ID, description, priority, due date, category, **tags**, status, created time, optional dependency (`blocked_by`), time tracking fields |
-| Search (option 3) | Matches description, category, or **tags** (use `#work` or `work`) |
-| Sort (option 6) | By priority, due date, category, or ID (default: priority) |
-| Bulk | Mark done or delete by comma-separated IDs |
-| Alerts | Overdue / due-soon; auto-escalation flag for stale high-priority items |
-| Export | CSV (`task_export.csv`) with **all keys** present across tasks |
-| Auth | Login, optional password reset via recovery Q&A |
-| Extras | XP/levels on complete, colored table output |
+| Area | Details |
+|------|---------|
+| **UI** | [Rich](https://github.com/Textualize/rich) tables, panels, safe password prompt |
+| **Persistence** | Atomic writes (crash-safe), JSON storage |
+| **Tasks** | Description, priority, due date, category, tags, notes, recurrence (daily/weekly/monthly), dependencies, timer, XP |
+| **Views** | All tasks; **today + overdue**; **next 7 days** |
+| **Edit** | Full edit flow + **detail** view for one task |
+| **Search** | Description, category, notes, tags (`#tag` supported) |
+| **Complete** | One or many IDs; recurring tasks spawn the **next occurrence** when marked done |
+| **CSV** | Export (tags as `;`-separated); **import** merges/replaces by `id` |
+| **Archive** | Moves completed tasks to `archive.json` and exits |
 
-## Task shape (main fields)
+## Security
 
-| Field | Notes |
-|--------|--------|
-| `tags` | List of strings (lowercased when added); older saved tasks without `tags` still load |
-| `q` / `a` | Recovery question and **hashed** answer in `users.json` |
+Passwords are **SHA-256** without salt—suitable for **local learning only**. Keep `users.json` private (it is listed in `.gitignore`).
 
-## Security note
+## Menu
 
-Passwords are **SHA-256 hashes without salt**—fine for local learning, **not** for production or shared machines. `users.json` is **gitignored**; do not commit it.
+1. View all  
+2. Today & overdue  
+3. Next 7 days  
+4. Add task  
+5. Edit task  
+6. Task detail  
+7. Search  
+8. Complete (IDs)  
+9. Delete (IDs)  
+10. Sort  
+11. Timer  
+12. Stats  
+13. Export CSV  
+14. Import CSV  
+15. Archive & exit  
 
-## User file migration
+## Layout
 
-If an older `users.json` used `recovery_question` / `recovery_answer`, it is **migrated** on load to `q` / `a`. Missing `xp` / `level` default to `0` / `1`.
+- `task_manager.py` — entry point  
+- `tm/` — package (`config`, `storage`, `users`, `tasks`, `cli`)  
+- `tests/` — pytest  
 
-## Menu (current)
-
-1. View All  
-2. Add Task  
-3. Search / filter (keyword, category, `#tag`)  
-4. Bulk done  
-5. Bulk delete  
-6. Sort (1 priority · 2 due · 3 category · 4 ID; default priority)  
-7. Toggle timer  
-8. Player stats  
-9. Export CSV  
-10. Archive completed & exit  
-
----
-
-## Tutorial history (evolution)
-
-The project grew stepwise: persistence → CRUD → priorities → search → due dates → CSV → sorting → colors → validation → security → analytics/archiving → tags/time/bulk → categories → escalation/dependencies/gamification. The README’s step list documents that learning path; the **Menu** section above is the source of truth for the current UI.
+The tutorial-style step history is preserved in Git history; this README reflects the **current** app.
