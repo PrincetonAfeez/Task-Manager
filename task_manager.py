@@ -83,24 +83,26 @@ def search_tasks(keyword):
         for t in results:
             status = "Done" if t["status"] else "Pending"
             print(f"ID: {t['id']} | {t['description']} | [{t['priority']}] | {status}")
-            
+
 # --- USER INTERFACE ---
 def main():                                         # Define the primary app controller
     while True:                                     # Start an infinite loop to keep the app open
         print("\n--- TASK MANAGER MENU ---")        # Print the menu header
-        print("1. View Tasks")                      # Show option 1
-        print("2. Add Task")                       # Show option 2
-        print("3. Mark Task Done")                  # Show option 3
-        print("4. Delete Task")                     # Show option 4
-        print("5. Exit")                            # Show option 5
+        print("1. View Tasks")
+        print("2. Add Task")
+        print("3. Mark Task Done")
+        print("4. Delete Task")
+        print("5. Search Tasks")  # New Option
+        print("6. Exit")
         
         choice = input("\nChoose an option (1-5): ") # Ask the user for their choice
         
         if choice == "1":                           # If they chose 1...
             view_tasks()                            # Call the view function
-        elif choice == "2":                         # If they chose 2...
-            desc = input("Enter task description: ") # Ask for the task text
-            add_task(desc)                          # Call the add function
+        elif choice == "2":
+            desc = input("Enter task description: ")
+            pri = input("Enter priority (Low/Medium/High): ") or "Medium" # Defaults to Medium if empty
+            add_task(desc, pri)                          # Call the add function
         elif choice == "3":                         # If they chose 3...
             try:                                    # Use try/except to prevent crashes on bad input
                 t_id = int(input("Enter ID to mark done: ")) # Convert input string to integer
@@ -113,7 +115,10 @@ def main():                                         # Define the primary app con
                 delete_task(t_id)                   # Call the delete function
             except ValueError:
                 print("Please enter a valid number.") # Show an error
-        elif choice == "5":                         # If they chose 5...
+        elif choice == "5":
+            query = input("Enter search keyword: ")
+            search_tasks(query)
+        elif choice == "6":                         # If they chose 6...
             print("Goodbye!")                       # Print a farewell message
             break                                   # Break the loop to close the program
         else:                                       # If they typed anything else...
