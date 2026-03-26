@@ -20,17 +20,18 @@ def save_tasks(tasks):                              # Define function to push da
         json.dump(tasks, file, indent=4)            # Save the list as JSON with 4-space indentation for readability
 
 # --- CORE LOGIC (CRUD) ---
-def add_task(description):                          # Define function to Create a new task
-    tasks = load_tasks()                            # First, get the current list of tasks from storage
-    new_task = {                                    # Create a dictionary for the new task
-        "id": len(tasks) + 1,                       # Set the ID by counting existing tasks and adding 1
-        "description": description,                 # Store the description provided by the user
-        "status": False,                            # Set default status to False (meaning 'Pending')
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Store the current timestamp as a string
+def add_task(description, priority="Medium"):      # Added a default 'Medium' priority
+    tasks = load_tasks()
+    new_task = {
+        "id": len(tasks) + 1,
+        "description": description,
+        "priority": priority,                       # New Field!
+        "status": False,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-    tasks.append(new_task)                          # Add the new dictionary to our Python list
-    save_tasks(tasks)                               # Save the updated list back to the JSON file
-    print(f"✔ Task added successfully: '{description}'") # Print a success message to the user
+    tasks.append(new_task)
+    save_tasks(tasks)
+    print(f"✔ Added: [{priority}] {description}") # Print a success message to the user
 
 def view_tasks():                                   # Define function to Read and display tasks
     tasks = load_tasks()                            # Get the latest list of tasks
