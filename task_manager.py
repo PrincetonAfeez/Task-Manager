@@ -249,6 +249,20 @@ def get_valid_priority():
         if c in opts: return opts[c]                # Match selection
         print(f"{Colors.RED}✖ Invalid Choice.{Colors.ENDC}")
 
+def bulk_action(action_type):
+    """Performs an action (done/delete) on multiple IDs at once."""
+    raw_ids = input("Enter Task IDs separated by commas (e.g. 1, 4, 7): ")
+    try:
+        # Convert "1, 2, 3" into [1, 2, 3]
+        target_ids = [int(i.strip()) for i in raw_ids.split(",")]
+        for t_id in target_ids:
+            if action_type == "done":
+                mark_done(t_id)
+            elif action_type == "delete":
+                delete_task(t_id)
+    except ValueError:
+        print(f"{Colors.RED}✖ Error: Please use numbers and commas only.{Colors.ENDC}")
+        
 # --- MAIN CONTROLLER ---
 def main():
     """The master loop that keeps the application alive and interactive."""
