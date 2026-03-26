@@ -284,6 +284,13 @@ def toggle_timer(task_id):
             save_tasks(tasks)
             return
     print(f"{Colors.RED}✖ Task not found.{Colors.ENDC}")
+
+def filter_by_tag(tag):
+    """Shows only tasks that contain a specific #tag."""
+    tasks = load_tasks()
+    results = [t for t in tasks if tag.lower() in t["description"].lower()]
+    print(f"--- Showing results for {tag} ---")
+    display_task_table(results)
     
 # --- MAIN CONTROLLER ---
 def main():
