@@ -304,6 +304,7 @@ def archive_tasks():
 
 # --- MAIN INTERFACE ---
 def main():                                         # Main Program Loop
+    check_deadlines()  # <--- Triggers automatically on startup!
     while True:                                     # Keep app running
         print(f"\n{Colors.BOLD}{Colors.BLUE}--- TASK MANAGER PRO V1.0 ---{Colors.ENDC}")
         print("1. View Tasks")                      # Option 1
@@ -313,9 +314,11 @@ def main():                                         # Main Program Loop
         print("5. Search Tasks")                    # Option 5
         print("6. Export to CSV")                   # Option 6 (Fixed numbering!)
         print("7. Sort & View Tasks")               # Option 7
-        print("8. Exit")                            # Option 8
+        print("8. Productivity Stats")
+        print("9. Archive Completed Tasks")
+        print("10. Exit")
         
-        choice = input("\nSelect (1-8): ")          # User selection
+        choice = input("\nSelect (1-10): ")          # User selection
         
         if choice == "1": view_tasks()              # Standard View
         elif choice == "2":                         # Add Logic
@@ -342,7 +345,11 @@ def main():                                         # Main Program Loop
             sc = input("Choice: ")
             s_map = {"1": "priority", "2": "due_date", "3": "id"}
             view_tasks_sorted(s_map.get(sc, "id"))
-        elif choice == "8":                         # Exit Logic
+        elif choice == "8":
+            show_stats()
+        elif choice == "9":
+            archive_tasks()
+        elif choice == "10":                         # Exit Logic
             print(f"{Colors.BLUE}Goodbye!{Colors.ENDC}")
             break                                   # Kill loop
         else: print(f"{Colors.RED}✖ Invalid choice.{Colors.ENDC}")
