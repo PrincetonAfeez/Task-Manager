@@ -1,72 +1,58 @@
-# Task-Manager Tutorial
+# Task Manager (CLI)
 
-Task Manager will teach you about Data Structures (Lists and Dictionaries) and CRUD (Create, Read, Update, Delete) operations—the bread and butter of system architecture.
+A Python CLI that demonstrates **lists/dictionaries**, **JSON persistence**, **CRUD**, and a full menu-driven workflow. Dependencies: **Python 3** only (`requirements.txt` lists no third-party packages).
 
-This is more advanced than a text file because it allows us to save complex data (like task status and deadlines) in a machine-readable format.
+## Run
 
-Property | Type | Description
-ID | Integer | A unique identifier for the task.
-Description | String | What needs to be done.
-Status | Boolean | "True for completed, False for pending."
-Created At | String | Timestamp for when the task was added.
+```bash
+python task_manager.py
+```
 
-Step 1: The Project Structure
-Step 2: Logic for Persistence (Load & Save)
-Step 3: The "C" in CRUD (Create) - ID, Description, Status, and Created At.
-Step 4: The view_tasks Function (R - Read)
-Step 5: The mark_done Function (U - Update)
-Step 6: The delete_task Function (D - Destroy)
-Step 7: Update the Menu Loop
+On first run you create a local admin account (`users.json`). Task data is stored in `tasks.json`. Completed tasks can be moved to `archive.json` via **Archive & Exit**.
 
-At this point, I have persistent, CRUD-compliant Python application. I've covered:
+## Features
 
-1. File I/O (JSON)
-2. Data Structures (Lists and Dictionaries)
-3. Git/GitHub Workflow
-4. CLI UX Design
+| Area | What it does |
+|------|----------------|
+| Tasks | ID, description, priority, due date, category, **tags**, status, created time, optional dependency (`blocked_by`), time tracking fields |
+| Search (option 3) | Matches description, category, or **tags** (use `#work` or `work`) |
+| Sort (option 6) | By priority, due date, category, or ID (default: priority) |
+| Bulk | Mark done or delete by comma-separated IDs |
+| Alerts | Overdue / due-soon; auto-escalation flag for stale high-priority items |
+| Export | CSV (`task_export.csv`) with **all keys** present across tasks |
+| Auth | Login, optional password reset via recovery Q&A |
+| Extras | XP/levels on complete, colored table output |
 
-Step 8: Adding Priority Levels
-Step 9: The Search/Filter Logic
-Step 10: Update the Menu (The CLI)
-Step 11: Add Due Dates Feature
-Step 12: Add CSV Export
-Step 13: The Updated Menu Logic
-Step 14: Adding a Sorting
-Step 15: Updating the Menu to 8 Options
-Step 16: Added the Color Engine
-Step 17: Updated the Display Logic
-Step 18: Adding Input Validation
-Step 19: Applied Validation to the Menu
+## Task shape (main fields)
 
-The app now has:
-1. Persistent Storage (JSON)
-2. Full CRUD (Create, Read, Update, Delete)
-3. Advanced CLI (8 Options, Colors, Sorting)
-4. Data Integrity (Validation, CSV Export)
+| Field | Notes |
+|--------|--------|
+| `tags` | List of strings (lowercased when added); older saved tasks without `tags` still load |
+| `q` / `a` | Recovery question and **hashed** answer in `users.json` |
 
-Step 20: The Security Engine & Gateway
-Step 21: Add a Forgot Password & Update the User Schema
-Step 22: Adding Overdue Alerts, Analytics, and Data Archiving
-Step 23: Adding Tags, Time Tracking, and Bulk Actions
-Step 24: Re-mapped the menu
+## Security note
 
-The Menu Mapping
-1. View All: This replaces "View Tasks" (Option 1).
-2. Add Task: Stays the same (Option 2).
-3. Search/Tags: This merges "Search Tasks" (Option 5) with the new #Tag filtering.
-4. Bulk Mark Done: This is an "Update" upgrade. It replaces the single "Mark Task Done" (Option 3) because it can do one or many tasks at once.
-5. Bulk Delete: This is a "Delete" upgrade. It replaces the single "Delete Task" (Option 4).
-6. Sort View: Stays the same as "Sort Tasks" (Option 6).
-7. Toggle Timer: [NEW] The Time Tracker.
-8. Productivity: This is "Productivity Stats" renamed for space (Option 8).
-9. Archive: This is "Archive Completed" renamed for space (Option 9).
-10. Export & Exit: [CONSOLIDATED] I combined "Export to CSV" (Option 7) and "Exit" (Option 10) into one final command.
+Passwords are **SHA-256 hashes without salt**—fine for local learning, **not** for production or shared machines. `users.json` is **gitignored**; do not commit it.
 
-So far I have:
-1. Security: SHA-256 hashing and Password Recovery.
-2. Data Management: JSON storage, CSV Export, and Archiving.
-3. Intelligence: Proactive Deadline Alerts and Productivity Analytics.
-4. Efficiency: Bulk processing and integrated Time Tracking.
+## User file migration
 
-Step 25: Added Project Categories
-Step 26: Adding Auto-Escalation, Dependencies, and Gamification
+If an older `users.json` used `recovery_question` / `recovery_answer`, it is **migrated** on load to `q` / `a`. Missing `xp` / `level` default to `0` / `1`.
+
+## Menu (current)
+
+1. View All  
+2. Add Task  
+3. Search / filter (keyword, category, `#tag`)  
+4. Bulk done  
+5. Bulk delete  
+6. Sort (1 priority · 2 due · 3 category · 4 ID; default priority)  
+7. Toggle timer  
+8. Player stats  
+9. Export CSV  
+10. Archive completed & exit  
+
+---
+
+## Tutorial history (evolution)
+
+The project grew stepwise: persistence → CRUD → priorities → search → due dates → CSV → sorting → colors → validation → security → analytics/archiving → tags/time/bulk → categories → escalation/dependencies/gamification. The README’s step list documents that learning path; the **Menu** section above is the source of truth for the current UI.

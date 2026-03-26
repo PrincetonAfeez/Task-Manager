@@ -2,9 +2,14 @@
 __pycache__/
 *.py[cod]
 
-# Local Database (Keep your personal tasks out of GitHub!)
+# Local data (do not commit credentials or personal tasks)
 tasks.json
+users.json
+archive.json
 
 # Environment folders
 venv/
 .env
+
+# Local backups
+RM backup.md
