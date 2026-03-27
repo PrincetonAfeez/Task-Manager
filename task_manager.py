@@ -1,6 +1,6 @@
-"""Entry point — run: python task_manager.py  (or: python -m tm)"""
+"""Entry: python task_manager.py  |  python -m tm  |  tm batch --file ops.json"""
 
-from tm.cli import run
+from tm.typer_app import app
 
 if __name__ == "__main__":
-    run()
+    app()

@@ -1,3 +1,3 @@
-from tm.cli import run
+from tm.typer_app import app
 
-run()
+app()

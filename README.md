@@ -10,6 +10,8 @@ pip install -r requirements.txt
 
 ## Run
 
+**Interactive UI** (login + menu):
+
 ```bash
 python task_manager.py
 ```
@@ -18,6 +20,75 @@ Or:
 
 ```bash
 python -m tm
+```
+
+With no subcommand, the Rich UI starts. Typer also accepts:
+
+- `python -m tm --help` — root help (includes **`--install-completion`**)
+- `python -m tm batch --help` — JSON batch mode
+
+### Tab completion (Typer / Click)
+
+This CLI is built with **[Typer](https://typer.tiangolo.com/)** (Click-based). Enable tab completion once:
+
+```bash
+python -m tm --install-completion
+```
+
+Or:
+
+```bash
+python task_manager.py --install-completion
+```
+
+Use **`--show-completion`** to print the completion script for manual install. See also `python -m tm completion`.
+
+**Note:** [argcomplete](https://github.com/kislyuk/argcomplete) targets **argparse** CLIs. This app uses Typer, so use `--install-completion` instead of `register-python-argcomplete`.
+
+### JSON batch mode (scripting / CI)
+
+Run operations without the interactive menu; results are printed as JSON on stdout. Exit code **1** if any operation fails.
+
+```bash
+python -m tm batch --file ops.json
+python -m tm batch -f -
+echo '{"ops":[{"op":"list_tasks"}]}' | python -m tm batch --stdin
+```
+
+Compact one-line output:
+
+```bash
+python -m tm batch -s -c --stdin < ops.json
+```
+
+Set `TASK_MANAGER_DATA_DIR` so scripts use a dedicated data folder.
+
+**Payload:** either `{"ops": [ ... ]}` or a bare JSON array `[ ... ]`. Each element is an object with an **`op`** field:
+
+| `op` | Fields |
+|------|--------|
+| `list_tasks` | — |
+| `add_task` | `description`, optional `priority`, `due_date`, `category`, `tags` (array or comma string), `notes`, `recurrence`, `blocked_by` |
+| `mark_done` | `id` |
+| `delete_task` | `id` |
+| `get_task` | `id` |
+| `edit_task` | `id`, `updates` (object, same keys as interactive edit) |
+| `search` | `query` or `q` |
+| `stats` | — |
+| `export_csv` | optional `path` |
+| `import_csv` | `path` |
+| `archive_tasks` | — |
+| `check_deadlines` | — |
+
+Example `ops.json`:
+
+```json
+{
+  "ops": [
+    { "op": "add_task", "description": "Scripted task", "priority": "Medium", "category": "Auto" },
+    { "op": "list_tasks" }
+  ]
+}
 ```
 
 ### Data directory
@@ -75,8 +146,8 @@ Passwords are **SHA-256** without salt—suitable for **local learning only**. K
 
 ## Layout
 
-- `task_manager.py` — entry point  
-- `tm/` — package (`config`, `storage`, `users`, `tasks`, `cli`)  
+- `task_manager.py` — entry point (Typer)  
+- `tm/` — package (`config`, `storage`, `users`, `tasks`, `cli`, `batch`, `typer_app`)  
 - `tests/` — pytest  
 
 The tutorial-style step history is preserved in Git history; this README reflects the **current** app.
